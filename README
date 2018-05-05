@@ -41,4 +41,58 @@ $ sudo dbus-send --system --print-reply --dest=org.bluez \
 
  * hciX - replace X with controller index (eg. hci0)
  * dev_XX_YY_ZZ_AA_BB_CC - replace with server's BT control MAC address
+ 
+ 
+ 
+ 1、运行这个蓝牙透传程序之前需要先配对，配对程序用bluez自带的simple-agent就行。
+ 2、长连接需要稍作调整
+ gboolean
+server_read_data (gpointer user_data) {
+	char buf[1024] = { 0 };
+	int bytes_read;
+	int opts = 0;
+	struct spp_data *spp = user_data;
+	
+	// set socket for blocking IO
+	fcntl(spp->sock_fd, F_SETFL, opts);
+	opts = fcntl(spp->sock_fd, F_GETFL);
+	if (opts < 0) {
+		perror("fcntl(F_GETFL)");
+		exit(EXIT_FAILURE);
+	}
+
+	opts &= ~O_NONBLOCK;
+	
+	if (fcntl(spp->sock_fd, F_SETFL,opts) < 0) {
+		perror("fcntl(F_SETFL)");
+		exit(EXIT_FAILURE);
+	}
+    while(1){
+        // read data from client
+        bytes_read = read(spp->sock_fd, buf, sizeof(buf));
+       if ( bytes_read > 0 ) {
+            printf("received [%s]\n", buf);
+        } else {
+            printf("error reading from client [%d] %s\n", errno, strerror(errno));
+            break;
+        }
+        // write data to client
+        int status = write(spp->sock_fd, buf, strlen(buf));
+        if (status < 0) {
+            printf("error writting to client [%d] %s\n", errno, strerror(errno));
+            break;
+        }
+        write(spp->sock_fd,"\r\n",2);
+     }
+
+	// close connection
+	close(spp->sock_fd);
+
+	// all done!
+	//g_main_loop_quit(spp->loop);
+
+	// make this a one-shot
+	return false;
+    //return true;
+    }
 
