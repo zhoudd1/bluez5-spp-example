@@ -45,7 +45,7 @@ $ sudo dbus-send --system --print-reply --dest=org.bluez \
  
  
  1、运行这个蓝牙透传程序之前需要先配对，配对程序用bluez自带的simple-agent就行。
- 2、长连接需要稍作调整
+ 2、长连接需要稍作调整，注释掉退出函数即可g_main_loop_quit(spp->loop);
  gboolean
 server_read_data (gpointer user_data) {
 	char buf[1024] = { 0 };
